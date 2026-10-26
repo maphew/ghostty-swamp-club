@@ -23,6 +23,11 @@ your Ghostty config next to itself, and sets `theme = swamp-club` (replacing
 an existing `theme =` line if you had one). Then reload Ghostty:
 **`⌘⇧,`** on macOS, **`Ctrl+Shift+,`** elsewhere.
 
+The config it edits is the first one Ghostty actually reads (see
+[where the config lives](#where-the-config-lives)), so a distro that ships
+`config.ghostty` — Bluefin, Bazzite and other Universal Blue images do — is
+edited in place instead of growing a second config file.
+
 Add `--dry-run` to see what it would touch, or `--theme-only` to install the
 file and leave your config alone.
 
@@ -39,7 +44,8 @@ file and leave your config alone.
    This is the only directory Ghostty searches for user themes — on macOS
    too, even if your config lives in `~/Library/Application Support/com.mitchellh.ghostty/`.
 
-2. Add one line to your Ghostty config:
+2. Add one line to your Ghostty config (`config.ghostty` on 1.2.3+,
+   `config` before that):
 
    ```
    theme = swamp-club
@@ -60,6 +66,26 @@ theme = light:Catppuccin Latte,dark:swamp-club
 
 Remove the `theme = swamp-club` line (or restore the backup the installer
 wrote), delete `~/.config/ghostty/themes/swamp-club`, and reload.
+
+## Where the config lives
+
+Ghostty 1.2.3+ reads, in this order:
+
+| platform | path |
+|---|---|
+| all | `$XDG_CONFIG_HOME/ghostty/config.ghostty` |
+| all | `$XDG_CONFIG_HOME/ghostty/config` |
+| macOS | `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty` |
+| macOS | `~/Library/Application Support/com.mitchellh.ghostty/config` |
+
+`XDG_CONFIG_HOME` defaults to `~/.config`. Every file that exists is loaded,
+not just the first, and a later file wins where they disagree. Releases before
+1.2.3 only look for `config` — the rename to `config.ghostty` landed in 1.2.3,
+which is why a distro-provided file may be named either way.
+
+The installer edits the first of those that exists (printing a note when more
+than one does), or creates `config.ghostty` — `config` when the installed
+Ghostty is older than 1.2.3 — when none does. Pass `--config PATH` to override.
 
 ## Palette
 

@@ -56,3 +56,54 @@ jobs:
           grep -qx 'font-family = Iosevka' "$XDG_CONFIG_HOME/ghostty/config"
           grep -qx 'copy-on-select = clipboard' "$XDG_CONFIG_HOME/ghostty/config"
           echo "ok"
+
+      - name: install.sh edits a distro-named config.ghostty instead of making config
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          mkdir -p "$XDG_CONFIG_HOME/ghostty"
+          printf 'theme = Catppuccin Mocha\nwindow-padding-x = 8\n' > "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          ./install.sh
+          grep -qx 'theme = swamp-club' "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          grep -qx 'window-padding-x = 8' "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          test ! -e "$XDG_CONFIG_HOME/ghostty/config" || test ! -s "$XDG_CONFIG_HOME/ghostty/config"
+          echo "ok"
+
+      - name: install.sh creates config.ghostty when no config exists
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          ./install.sh
+          grep -qx 'theme = swamp-club' "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          test ! -e "$XDG_CONFIG_HOME/ghostty/config"
+          echo "ok"
+
+      - name: install.sh edits the winning file when both configs exist
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          mkdir -p "$XDG_CONFIG_HOME/ghostty"
+          printf 'font-size = 13\n' > "$XDG_CONFIG_HOME/ghostty/config"
+          printf 'font-size = 11\n' > "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          out="$(./install.sh)"
+          grep -qx 'theme = swamp-club' "$XDG_CONFIG_HOME/ghostty/config.ghostty"
+          ! grep -q '^theme' "$XDG_CONFIG_HOME/ghostty/config"
+          printf '%s\n' "$out" | grep -q 'also reads .*/ghostty/config;'
+          echo "ok"
+
+      - name: --config and --theme-only and --dry-run are respected
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          mkdir -p "$XDG_CONFIG_HOME/ghostty"
+          printf 'theme = Dracula\n' > "$XDG_CONFIG_HOME/ghostty/mine"
+          ./install.sh --config "$XDG_CONFIG_HOME/ghostty/mine"
+          grep -qx 'theme = swamp-club' "$XDG_CONFIG_HOME/ghostty/mine"
+          ! grep -q '^theme' "$XDG_CONFIG_HOME/ghostty/config.ghostty" 2>/dev/null || true
+          printf 'theme = Dracula\n' > "$XDG_CONFIG_HOME/ghostty/untouched"
+          ./install.sh --theme-only --config "$XDG_CONFIG_HOME/ghostty/untouched"
+          grep -qx 'theme = Dracula' "$XDG_CONFIG_HOME/ghostty/untouched"
+          cp "$XDG_CONFIG_HOME/ghostty/untouched" /tmp/before
+          ./install.sh --dry-run --config "$XDG_CONFIG_HOME/ghostty/untouched"
+          cmp /tmp/before "$XDG_CONFIG_HOME/ghostty/untouched"
+          echo "ok"
